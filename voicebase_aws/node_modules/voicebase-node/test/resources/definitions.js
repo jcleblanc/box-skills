@@ -1,0 +1,3 @@
+describe('Definitions Resource', () => {
+
+});
