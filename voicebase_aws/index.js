@@ -169,10 +169,8 @@ const processCallData = (boxFileId, body, callback) => {
           mEndTime = (end / 100) * metricVal;
 
           qualityEntries.push({
+            type: 'text',
             text: `${metricsSearch[metricCatName][metric.metricName]}: ${metricVal.toFixed(2)}%`,
-            appears: [{ 
-              start: mStartTime, 
-              end: mEndTime }]
           });
         }
       }
@@ -180,6 +178,7 @@ const processCallData = (boxFileId, body, callback) => {
   }
 
   // Fetch prediction metrics
+  let timelineCard;
   if (prediction) {
     const appointmentMade = appointmentLabels[prediction.classifiers[0].predictedClassLabel] ? appointmentLabels[prediction.classifiers[0].predictedClassLabel] : 'Unknown';
 
@@ -203,20 +202,26 @@ const processCallData = (boxFileId, body, callback) => {
           appears: appearances
         });
       }
+      timelineCard = createMetadataCard(boxFileId, 'timeline', 'Sensitive Information', end, timelineEntries);
+    } else {
+      timelineEntries.push({
+        type: 'text',
+        text: 'No sensitive information detected'
+      });
+      timelineCard = createMetadataCard(boxFileId, 'keyword', 'Sensitive Information', end, timelineEntries);
     }
   }
 
   // Create appointment, call quality and timeline cards
-  let appointmentCard = createMetadataCard(boxFileId, 'keyword', 'Appointment Status', end, appointmentEntries);
-  let qualityCard = createMetadataCard(boxFileId, 'timeline', 'Call Metrics', end, qualityEntries);
-  let timelineCard = createMetadataCard(boxFileId, 'timeline', 'Sensitive Information Detected', end, timelineEntries);
-  
+  let appointmentCard = createMetadataCard(boxFileId, 'keyword', 'Appointment Predictor', end, appointmentEntries);
+  let qualityCard = createMetadataCard(boxFileId, 'keyword', 'Call Metrics', end, qualityEntries);
+
   // Create agent 
   agentEntries.push({type: 'text', text: 'Agent Greeting: No'});
   agentEntries.push({type: 'text', text: 'Address Confirmed: No'});
   agentEntries.push({type: 'text', text: 'Asked for Payment: No'});
   agentEntries.push({type: 'text', text: 'Proper Closing: No'});
-  let agentCard = createMetadataCard(boxFileId, 'keyword', 'Agent Activity', end, agentEntries);
+  let agentCard = createMetadataCard(boxFileId, 'keyword', 'Agent Actions', end, agentEntries);
 
   // Create and return card callback object
   const callbackObj = { 
@@ -303,11 +308,9 @@ const addMetadata = (boxFileId, vbMediaId, token, metadata, callback) => {
  */
 const createMetadataCard = (fileId, type, title, duration, entries) => {
   let card = {
-    created_at: new Date().toISOString(),
+    //created_at: new Date().toISOString(),
     type: 'skill_card',
     skill_card_type: type,
-    title: title,
-    duration: duration,
     skill: {
       type: 'service',
       id: 'box-skill-vb-audio-analysis-node'
@@ -316,6 +319,10 @@ const createMetadataCard = (fileId, type, title, duration, entries) => {
       type: 'skill_invocation',
       id: fileId
     },
+    skill_card_title: {
+      message: title
+    },
+    duration: duration,
     entries: entries
   };
 
