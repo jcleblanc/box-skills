@@ -17,6 +17,8 @@ let indexerEvent;
  * @return {callback} callback for event processing with the uploaded media id
  */
 const uploadMedia = (boxFileId, tokens, callback) => {
+  console.log(`FUNCTION UPLOADMEDIA FILE ID ${boxFileId}`);
+  
   // Create new Box SDK instance
   const sdk = new boxSDK({
     clientID: config.boxClientId,
@@ -87,7 +89,6 @@ const processCallData = (boxFileId, body, callback) => {
   let appointmentEntries = [];
   let qualityEntries = [];
   let timelineEntries = [];
-  let agentEntries = [];
   let sentence = '';
   let start = 0;
   let end = 0;
@@ -198,11 +199,12 @@ const processCallData = (boxFileId, body, callback) => {
         }
 
         timelineEntries.push({
+          type: 'text',
           text: detector.detectorName,
           appears: appearances
         });
       }
-      timelineCard = createMetadataCard(boxFileId, 'timeline', 'Sensitive Information', end, timelineEntries);
+      timelineCard = createMetadataCard(boxFileId, 'keyword', 'Sensitive Information', end, timelineEntries);
     } else {
       timelineEntries.push({
         type: 'text',
@@ -216,17 +218,10 @@ const processCallData = (boxFileId, body, callback) => {
   let appointmentCard = createMetadataCard(boxFileId, 'keyword', 'Appointment Predictor', end, appointmentEntries);
   let qualityCard = createMetadataCard(boxFileId, 'keyword', 'Call Metrics', end, qualityEntries);
 
-  // Create agent 
-  agentEntries.push({type: 'text', text: 'Agent Greeting: No'});
-  agentEntries.push({type: 'text', text: 'Address Confirmed: No'});
-  agentEntries.push({type: 'text', text: 'Asked for Payment: No'});
-  agentEntries.push({type: 'text', text: 'Proper Closing: No'});
-  let agentCard = createMetadataCard(boxFileId, 'keyword', 'Agent Actions', end, agentEntries);
-
   // Create and return card callback object
   const callbackObj = { 
     vbid: mediaId, 
-    cards: [ transcriptCard, keywordCard, appointmentCard, qualityCard, timelineCard, agentCard ]
+    cards: [ transcriptCard, keywordCard, appointmentCard, qualityCard, timelineCard ]
   };
 
   console.log(util.inspect(callbackObj, {showHidden: false, depth: null}));
@@ -265,19 +260,11 @@ const addMetadata = (boxFileId, vbMediaId, token, metadata, callback) => {
     if (err.response && err.response.body && err.response.body.code === 'tuple_already_exists') {
       console.log("UPDATING----------------------------------------------------------------");
 
-      const jsonPatch = [
-        { op: 'replace', path: '/cards/0', value: metadata.cards[0] },
-        { op: 'replace', path: '/cards/1', value: metadata.cards[1] },
-        { op: 'replace', path: '/cards/2', value: metadata.cards[2] },
-        { op: 'replace', path: '/cards/3', value: metadata.cards[3] },
-        { op: 'replace', path: '/cards/4', value: metadata.cards[4] },
-        { op: 'replace', path: '/cards/5', value: metadata.cards[5] }];
-
-      /*const jsonPatch = metadata.cards.map(card => ({ 
-        op: 'add', 
-        path: '/cards/0', 
-        value: card 
-      }));*/
+      const jsonPatch = metadata.cards.map(card => ({ 
+        op: 'replace', 
+        path: '/cards', 
+        value: metadata.cards 
+      }));
 
       BoxClient.files.updateMetadata(boxFileId, BoxClient.metadata.scopes.GLOBAL, 'boxSkillsCards', jsonPatch).then((err, metadata) => {
         console.log('updated');
@@ -325,6 +312,8 @@ const createMetadataCard = (fileId, type, title, duration, entries) => {
     duration: duration,
     entries: entries
   };
+
+  console.log(util.inspect(card, {showHidden: false, depth: null}));
 
   return card;
 };
@@ -378,6 +367,8 @@ const processEvent = () => {
       const tokens = {read: token.read.access_token, write: token.write.access_token};
 
       fileManager.push(source.id);
+
+      console.log(`FUNCTION PROCESS EVENT FILE ID ${source.id}`);
 
       uploadMedia(source.id, tokens, function(mediaId) {
         console.log(`MEDIA UPLOADED: ${mediaId}`);
