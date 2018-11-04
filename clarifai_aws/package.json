@@ -1,0 +1,18 @@
+{
+  "name": "box-clarifai-aws",
+  "version": "1.0.0",
+  "description": "Box Skills Clarifai AWS Sample",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "skills"
+  ],
+  "author": "Jonathan LeBlanc",
+  "license": "ISC",
+  "dependencies": {
+    "box-node-sdk": "^1.22.0",
+    "clarifai": "^2.9.0"
+  }
+}
