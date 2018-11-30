@@ -22,7 +22,7 @@ express.post('/', (req, res) => {
   const app = new clarifai.App({
     apiKey: config.clarifaiKey
   });
-  
+
   // Create new Box SDK instance
   const sdk = new boxSDK({
     clientID: config.boxClientId,
@@ -65,10 +65,20 @@ express.post('/', (req, res) => {
           entries: entries
         }]};
 
-      // Update Box metadata
-      const jsonPatch = [{ op: 'replace', path: '/cards/0', value: metadata.cards[0] }];
-      client.files.updateMetadata(fileId, client.metadata.scopes.GLOBAL, metadataTemplate, jsonPatch).then((err, metadata) => {
-        console.log("Metadata update complete");
+      client.files.addMetadata(fileId, client.metadata.scopes.GLOBAL, metadataTemplate, metadata).then((err, metadata) => {
+        console.log("Metadata add complete");
+      }).catch(function (err) {
+        if (err.response && err.response.body && err.response.body.code === 'tuple_already_exists') {
+          const jsonPatch = [{ op: 'replace', path: '/cards/0', value: metadata.cards[0] }];
+
+          client.files.updateMetadata(fileId, client.metadata.scopes.GLOBAL, metadataTemplate, jsonPatch).then((err, metadata) => {
+            console.log("Metadata update complete");
+          }).catch(function (err) {
+            console.log(err.response.body);
+          });
+        } else {
+          console.log(err.response.body);
+        }
       });
     },
     function(err) {
