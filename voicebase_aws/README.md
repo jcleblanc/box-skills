@@ -8,6 +8,8 @@ This Box Skill is targeted towards call center audio file analysis. The service 
   * *Call Metrics*: Percentage of caller / agent talk and overtalk.
   * *Sensitive Information*: Whether any sensitive information was detected in the audio, with its location.
 
+![screen](./skills_vb.png)
+
 ## Setting up a New Lambda
 
   1. Go to https://aws.amazon.com/lambda/ and click "Get Started with AWS Lambda" (log in if needed)
