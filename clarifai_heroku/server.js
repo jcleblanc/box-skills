@@ -45,7 +45,7 @@ express.post('/', (req, res) => {
           type: 'skill_card',
           skill_card_type: 'keyword',
           skill_card_title: {
-            message: 'Categories2'
+            message: 'Categories'
           },
           skill: {
             type: 'service',
