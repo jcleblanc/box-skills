@@ -1,5 +1,5 @@
+const axios = require('axios');           // HTTP lib
 const bodyParser = require('body-parser') // Body Parser for JSON encoded bodies
-const boxSDK = require('box-node-sdk');   // Box SDK
 const clarifai = require('clarifai');     // Clarifai SDK
 const config = require('./config.js')     // Keys and config
 const express = require('express')();     // Express
@@ -17,18 +17,11 @@ express.post('/', (req, res) => {
   let fileId = body.source.id;
   let readToken = body.token.read.access_token;
   let writeToken = body.token.write.access_token;
-
+  
   // Instantiate a new Clarifai app instance
   const app = new clarifai.App({
     apiKey: config.clarifaiKey
   });
-
-  // Create new Box SDK instance
-  const sdk = new boxSDK({
-    clientID: config.boxClientId,
-    clientSecret: config.boxClientSecret
-  });
-  let client = sdk.getBasicClient(writeToken);
 
   // Create shared link to the file with write token
   const fileURL = `https://api.box.com/2.0/files/${fileId}/content?access_token=${readToken}`;
@@ -52,7 +45,7 @@ express.post('/', (req, res) => {
           type: 'skill_card',
           skill_card_type: 'keyword',
           skill_card_title: {
-            message: 'Categories'
+            message: 'Categories2'
           },
           skill: {
             type: 'service',
@@ -65,26 +58,49 @@ express.post('/', (req, res) => {
           entries: entries
         }]};
 
-      client.files.addMetadata(fileId, client.metadata.scopes.GLOBAL, metadataTemplate, metadata).then((err, metadata) => {
-        console.log("Metadata add complete");
-      }).catch(function (err) {
-        if (err.response && err.response.body && err.response.body.code === 'tuple_already_exists') {
-          const jsonPatch = [{ op: 'replace', path: '/cards/0', value: metadata.cards[0] }];
+        // Set metadata add / update URL
+        const urlMetadata = `https://api.box.com/2.0/files/${fileId}/metadata/global/${metadataTemplate}`;
 
-          client.files.updateMetadata(fileId, client.metadata.scopes.GLOBAL, metadataTemplate, jsonPatch).then((err, metadata) => {
-            console.log("Metadata update complete");
-          }).catch(function (err) {
-            console.log(err.response.body);
-          });
-        } else {
-          console.log(err.response.body);
-        }
-      });
-    },
-    function(err) {
-      console.error(err);
-    }
-  );
+        // Create POST request headers
+        let config = {
+          headers: {
+            'Authorization': `Bearer ${writeToken}`,
+            'Content-Type': 'application/json' 
+          }
+        };
+
+        // Make request to add metadata to file
+        axios.post(urlMetadata, metadata, config).then(function (response) {
+          console.log('Metadata added');
+        })
+        .catch(function (error) {
+          // If metadata already exists on the file this error will trigger
+          if (error.response.data.code === 'tuple_already_exists') {
+            // Modify headers for JSON patch metadata update request
+            config.headers = {
+              'Authorization': `Bearer ${writeToken}`,
+              'Content-Type': 'application/json-patch+json' 
+            };
+
+            // Create JSON patch data
+            const jsonPatch = [{ op: 'replace', path: '/cards/0', value: metadata.cards[0] }];
+
+            // Make Metadata update JSON patch request
+            axios.put(urlMetadata, jsonPatch, config).then(function (response) {
+              console.log('Metadata added');
+            }).catch(function (error) {
+              console.log(error);
+              console.log('Metadata update failed');
+            });
+          } else {
+            console.log(error.response.data.code);
+          }
+        });
+      },
+      function(err) {
+        console.error(err);
+      }
+    );
 });
 
 // Create server
